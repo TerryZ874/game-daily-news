@@ -24,9 +24,13 @@ jobs:
         run: python send_news.py
 
       - name: Commit and push news file
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "game-daily-news-bot"
           git config user.email "bot@game-daily-news"
           git add news/
-          git diff --cached --quiet || git commit -m "daily news digest $(date +'%Y-%m-%d')"
-          git push
+          git diff --cached --quiet && echo "no changes" || {
+            git commit -m "daily news digest $(date +'%Y-%m-%d')"
+            git push "https://TerryZ874:${GH_PAT}@github.com/TerryZ874/game-daily-news.git" main
+          }
