@@ -32,5 +32,7 @@ jobs:
           git add news/
           git diff --cached --quiet && echo "no changes" || {
             git commit -m "daily news digest $(date +'%Y-%m-%d')"
+            # clear checkout's auth header so the PAT in the URL takes effect
+            git config --unset-all http.https://github.com/.extraheader || true
             git push "https://TerryZ874:${GH_PAT}@github.com/TerryZ874/game-daily-news.git" main
           }
