@@ -1,13 +1,13 @@
-name: Send Game Industry Daily News
+name: Generate Game Industry Daily News
 
 on:
   schedule:
     # 23:00 UTC = 07:00 Beijing (UTC+8)
     - cron: "0 23 * * *"
-  workflow_dispatch:  # allow manual trigger for testing
+  workflow_dispatch:
 
 jobs:
-  send-news:
+  generate-news:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Fetch & send news
-        env:
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      - name: Fetch news and write markdown
         run: python send_news.py
+
+      - name: Commit and push news file
+        run: |
+          git config user.name "game-daily-news-bot"
+          git config user.email "bot@game-daily-news"
+          git add news/
+          git diff --cached --quiet || git commit -m "daily news digest $(date +'%Y-%m-%d')"
+          git push
