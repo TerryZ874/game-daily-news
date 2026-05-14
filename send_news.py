@@ -18,7 +18,7 @@ SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.sina.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
 SMTP_USER = os.environ.get("SMTP_USER", "solidgouki@sina.com")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
-MAIL_TO = os.environ.get("MAIL_TO", "solidgouki@sina.com")
+MAIL_TO = os.environ.get("MAIL_TO", "195274646@qq.com")
 MAIL_FROM = os.environ.get("MAIL_FROM", "solidgouki@sina.com")
 MAX_ENTRIES = int(os.environ.get("MAX_ENTRIES", "5"))
 
