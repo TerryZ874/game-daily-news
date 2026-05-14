@@ -11,7 +11,11 @@ import feedparser
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "news")
 MAX_ENTRIES = int(os.environ.get("MAX_ENTRIES", "5"))
 
+# Keywords to watch for and pin at the top
+WATCH_KEYWORDS = ["恋与深空", "Love and Deepspace", "love and deepspace"]
+
 RSS_FEEDS = [
+    # English game dev / industry
     ("Game Developer",        "https://www.gamedeveloper.com/rss.xml"),
     ("PC Gamer",              "https://www.pcgamer.com/rss/"),
     ("Rock Paper Shotgun",    "https://www.rockpapershotgun.com/feed/"),
@@ -19,7 +23,19 @@ RSS_FEEDS = [
     ("IndieGames",            "https://indiegames.com/feed/"),
     ("Engadget Gaming",       "https://www.engadget.com/rss/gaming/"),
     ("Reddit r/gamedev",      "https://www.reddit.com/r/gamedev/.rss"),
+    # Chinese game portal
+    ("机核",                  "https://www.gcores.com/rss"),
+    # Keyword search (works from GitHub US runners)
+    ("恋与深空 动态",         "https://news.google.com/rss/search?q=%E6%81%8B%E4%B8%8E%E6%B7%B1%E7%A9%BA+%E6%B8%B8%E6%88%8F&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"),
 ]
+
+
+def _match_watch(text: str) -> bool:
+    """Check if text contains any watched keyword."""
+    if not text:
+        return False
+    lower = text.lower()
+    return any(kw.lower() in lower for kw in WATCH_KEYWORDS)
 
 
 def fetch_entries(feed_name: str, url: str) -> list[dict]:
@@ -47,15 +63,43 @@ def fetch_entries(feed_name: str, url: str) -> list[dict]:
         summary = re.sub(r"<[^>]+>", " ", raw)
         summary = re.sub(r"\s+", " ", summary).strip()[:250]
 
-        entries.append({"title": title, "link": link, "summary": summary})
+        entries.append({"title": title, "link": link, "summary": summary, "source": feed_name})
         if len(entries) >= MAX_ENTRIES:
             break
     return entries
 
 
-def build_markdown(entries_by_feed: list[tuple[str, list[dict]]], date_str: str) -> str:
+def build_markdown(all_entries: list[tuple[str, list[dict]]], date_str: str) -> str:
+    """Build markdown, with watched keywords pinned at top."""
     lines = [f"# Game Industry Daily — {date_str}", ""]
-    for feed_name, entries in entries_by_feed:
+
+    # Collect all entries and split into watched vs regular
+    watched: list[dict] = []
+    regular: list[tuple[str, list[dict]]] = []
+
+    for feed_name, entries in all_entries:
+        watched_from_feed = [e for e in entries if _match_watch(e["title"]) or _match_watch(e["summary"])]
+        other_entries = [e for e in entries if e not in watched_from_feed]
+
+        if watched_from_feed:
+            watched.extend(watched_from_feed)
+        if other_entries:
+            regular.append((feed_name, other_entries))
+
+    # Watched / pinned section
+    if watched:
+        lines.append("## 🔥 恋与深空")
+        lines.append("")
+        for e in watched:
+            tag = f" [{e['source']}]" if e.get("source") else ""
+            lines.append(f"### [{e['title']}]({e['link']}){tag}")
+            if e["summary"]:
+                lines.append("")
+                lines.append(e["summary"])
+            lines.append("")
+
+    # Regular feeds
+    for feed_name, entries in regular:
         if not entries:
             continue
         lines.append(f"## {feed_name}")
@@ -66,6 +110,7 @@ def build_markdown(entries_by_feed: list[tuple[str, list[dict]]], date_str: str)
                 lines.append("")
                 lines.append(e["summary"])
             lines.append("")
+
     return "\n".join(lines)
 
 
